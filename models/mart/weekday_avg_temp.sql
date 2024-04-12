@@ -27,4 +27,4 @@ avg_weekday_temps AS (
     ORDER BY weekday
 )
 SELECT * 
-FROM avg_weekday_temps;
+FROM avg_weekday_temps
