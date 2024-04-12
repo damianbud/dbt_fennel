@@ -1,26 +1,30 @@
 WITH forecast_day_data AS (
     SELECT 
-        (extracted_data -> 'forecast' -> 'forecastday' -> 0 ->> 'date')::DATE AS date,
-        (extracted_data -> 'forecast' -> 'forecastday' -> 0 -> 'day' ->> 'avgtemp_c')::NUMERIC AS avg_temp_c
-    FROM {{ source('staging', 'weather_raw') }}
+        CAST(extracted_data -> 'forecast' -> 'forecastday' -> 0 ->> 'date' AS DATE) AS date,
+        CAST(extracted_data -> 'forecast' -> 'forecastday' -> 0 -> 'day' ->> 'avgtemp_c' AS NUMERIC) AS avg_temp_c
+    FROM weather_raw -- Replace this with the actual table name
 ),
-weekday_avg_temps AS (
+weekday_temps AS (
     SELECT
-        EXTRACT(ISODOW FROM date) AS weekday,
-        AVG(avg_temp_c) AS average_temperature
+        EXTRACT(DOW FROM date) AS weekday,
+        avg_temp_c
     FROM forecast_day_data
-    GROUP BY EXTRACT(ISODOW FROM date)
+),
+avg_weekday_temps AS (
+    SELECT
+        CASE 
+            WHEN weekday = 0 THEN 'Sunday'
+            WHEN weekday = 1 THEN 'Monday'
+            WHEN weekday = 2 THEN 'Tuesday'
+            WHEN weekday = 3 THEN 'Wednesday'
+            WHEN weekday = 4 THEN 'Thursday'
+            WHEN weekday = 5 THEN 'Friday'
+            WHEN weekday = 6 THEN 'Saturday'
+        END AS weekday_name,
+        AVG(avg_temp_c) AS average_temperature
+    FROM weekday_temps
+    GROUP BY weekday
+    ORDER BY weekday
 )
-SELECT 
-    CASE 
-        WHEN weekday = 1 THEN 'Monday'
-        WHEN weekday = 2 THEN 'Tuesday'
-        WHEN weekday = 3 THEN 'Wednesday'
-        WHEN weekday = 4 THEN 'Thursday'
-        WHEN weekday = 5 THEN 'Friday'
-        WHEN weekday = 6 THEN 'Saturday'
-        WHEN weekday = 7 THEN 'Sunday'
-    END AS weekday_name,
-    average_temperature
-FROM weekday_avg_temps
-ORDER BY weekday
+SELECT * 
+FROM avg_weekday_temps;
