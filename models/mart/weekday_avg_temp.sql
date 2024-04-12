@@ -2,11 +2,11 @@ WITH forecast_day_data AS (
     SELECT 
         (extracted_data -> 'forecast' -> 'forecastday' -> 0 ->> 'date')::DATE AS date,
         (extracted_data -> 'forecast' -> 'forecastday' -> 0 -> 'day' ->> 'avgtemp_c')::NUMERIC AS avg_temp_c
-    FROM {{source("staging", "weather_raw")}}
+    FROM {{ source('staging', 'weather_raw') }}
 ),
 weekday_avg_temps AS (
     SELECT
-        EXTRACT(ISODOW FROM date) AS weekday,  -- Extracts the ISO day of the week (1 = Monday, 7 = Sunday)
+        EXTRACT(ISODOW FROM date) AS weekday,
         AVG(avg_temp_c) AS average_temperature
     FROM forecast_day_data
     GROUP BY EXTRACT(ISODOW FROM date)
@@ -23,4 +23,4 @@ SELECT
     END AS weekday_name,
     average_temperature
 FROM weekday_avg_temps
-ORDER BY weekday;
+ORDER BY weekday
